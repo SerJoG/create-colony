@@ -15,6 +15,11 @@ assignees: SerJoG
 ### 🧪 Acceptance Criteria
 - [ ] 
 
+### 🔗 Resources & References
+* **Target System:**
+* **Source System:**
+* **Version:**
+
 ---
 ## ✅ General Definition of Done (DoD)
 ### ⚙️ Functionality
