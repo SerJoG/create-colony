@@ -1,0 +1,116 @@
+package com.serjog.createcolony.placementhandler;
+
+import com.ldtteam.structurize.api.RotationMirror;
+import com.ldtteam.structurize.blueprints.v1.Blueprint;
+import com.ldtteam.structurize.placement.handlers.placement.IPlacementHandler.ActionProcessingResult;
+import com.serjog.createcolony.resources.CreateResources;
+import com.serjog.createcolony.utils.BlockPosUtil;
+import com.serjog.createcolony.utils.BlockPosUtil.DoubleBlockPos;
+import com.serjog.createcolony.utils.ItemUtils;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class TrackPlacementHandler extends SimplePlacementHandler {
+    @Override
+    public boolean canHandle(Level level, BlockPos blockPos, BlockState blockState) {
+        return blockState.is(CreateResources.Blocks.track);
+    }
+
+    @Override
+    public List<ItemStack> getRequiredItems(Level level, BlockPos blockPos, BlockState blockState, @Nullable CompoundTag compoundTag, boolean b) {
+
+        final List<ItemStack> neededItems = new ArrayList<>();
+        neededItems.add(ItemUtils.stackFromDeferred(CreateResources.Blocks.track));
+
+        if (blockState.is(CreateResources.Blocks.track) &&
+                compoundTag != null && compoundTag.contains("Connections")) {
+            final ListTag connections = compoundTag.getList("Connections", Tag.TAG_COMPOUND);
+            for (int i = 0; i < connections.size(); i++) {
+                final var connection = connections.getCompound(i);
+                if (connection.getByte("Primary") != 0 &&
+                        connection.contains("Positions", Tag.TAG_LIST)) {
+                    BlockPos[] positions = BlockPosUtil.getList(connection, "Positions").toArray(BlockPos[]::new);
+                    if (positions.length == 2) {
+                        final int deltaX = Math.abs(positions[0].getX() - positions[1].getX());
+                        final int deltaZ = Math.abs(positions[0].getZ() - positions[1].getZ());
+                        final int trackAmount = (deltaX == 0 || deltaZ == 0) ? deltaX + deltaZ : deltaX * 3/2;
+                        neededItems.add(ItemUtils.stackFromDeferred(CreateResources.Blocks.track, trackAmount));
+
+                        if (connection.getByte("Girder") != 0) {
+                            neededItems.add(ItemUtils.stackFromDeferred(CreateResources.Items.metalGirder, trackAmount * 2));
+                        }
+                    }
+                }
+            }
+        }
+        return neededItems;
+    }
+
+    private final String[] VECTOR_TYPES = {"Starts", "Normals", "Axes"};
+    private final DoubleBlockPos[] STARTS_OFFSETS = {
+            new DoubleBlockPos(0, 0, 0),
+            new DoubleBlockPos(1, 0, 0),
+            new DoubleBlockPos(1, 0, 1),
+            new DoubleBlockPos(0, 0, 1),
+            new DoubleBlockPos(1, 0, 0),
+            new DoubleBlockPos(1, 0, 1),
+            new DoubleBlockPos(0, 0, 1),
+            new DoubleBlockPos(0, 0, 0),
+    };
+
+    @Override
+    public ActionProcessingResult handle(Blueprint blueprint, Level world, BlockPos pos, BlockState blockState, @Nullable CompoundTag tileEntityData, boolean complete, BlockPos centerPos, RotationMirror settings) {
+        final RotationMirror blueprintRotation = blueprint.getRotationMirror();
+
+        if (tileEntityData != null && tileEntityData.contains("Connections", Tag.TAG_LIST)) {
+            final ListTag connections = tileEntityData.getList("Connections", Tag.TAG_COMPOUND);
+            for (int i = 0; i < connections.size(); i++) {
+                final var connection = connections.getCompound(i);
+                for (final String vectorType : VECTOR_TYPES) {
+                    if (connection.contains(vectorType, Tag.TAG_LIST)) {
+                        final ListTag vectorInfo = connection.getList(vectorType, Tag.TAG_COMPOUND);
+                        for (int j = 0; j < vectorInfo.size(); j++) {
+                            final var vectorObj = vectorInfo.getCompound(j);
+                            if (vectorObj.contains("V", Tag.TAG_LIST)) {
+                                final var vector = vectorObj.getList("V", Tag.TAG_DOUBLE);
+                                final DoubleBlockPos blockPos = new DoubleBlockPos(vector);
+                                DoubleBlockPos newBlockPos = blockPos;
+                                if (blueprintRotation.isMirrored())
+                                    newBlockPos = new DoubleBlockPos(-blockPos.x(), blockPos.y(), blockPos.z());
+                                newBlockPos = newBlockPos.rotate(blueprintRotation.rotation());
+                                if (vectorType.equals("Starts")) {
+                                    newBlockPos = newBlockPos.add(STARTS_OFFSETS[blueprintRotation.ordinal()]);
+                                }
+                                final var newVector = newBlockPos.toNBT();
+                                vectorObj.put("V", newVector);
+                            }
+                        }
+                    }
+                }
+                if (connection.contains("Positions", Tag.TAG_LIST)) {
+                    final ListTag positionInfo = BlockPosUtil.getList(connection, "Positions").stream().map(position -> {
+                        if (blueprintRotation.isMirrored()) {
+                            position = new BlockPos(-position.getX(), position.getY(), position.getZ());
+                        }
+                        final BlockPos rotated = position.rotate(blueprintRotation.rotation());
+                        final CompoundTag posTag = new CompoundTag();
+                        posTag.put("Pos", BlockPosUtil.toNBT(rotated));
+                        return posTag;
+                    }).collect(ListTag::new, ListTag::add, ListTag::addAll);
+                    connection.put("Positions", positionInfo);
+                }
+            }
+        }
+
+        return super.handle(world, pos, blockState, tileEntityData, complete, centerPos, settings);
+    }
+}

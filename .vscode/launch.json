@@ -1,0 +1,93 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "Client",
+      "presentation": {
+        "group": "Mod Development - create-colony",
+        "order": 0
+      },
+      "projectName": "create-colony",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Projects\\Minecraft Mods\\create-colony\\build\\moddev\\clientRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Projects\\Minecraft Mods\\create-colony\\build\\moddev\\clientRunVmArgs.txt",
+        "-Dfml.modFolders\u003dcreatecolony%%D:\\Projects\\Minecraft Mods\\create-colony\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "Data",
+      "presentation": {
+        "group": "Mod Development - create-colony",
+        "order": 1
+      },
+      "projectName": "create-colony",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Projects\\Minecraft Mods\\create-colony\\build\\moddev\\dataRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Projects\\Minecraft Mods\\create-colony\\build\\moddev\\dataRunVmArgs.txt",
+        "-Dfml.modFolders\u003dcreatecolony%%D:\\Projects\\Minecraft Mods\\create-colony\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "GameTestServer",
+      "presentation": {
+        "group": "Mod Development - create-colony",
+        "order": 2
+      },
+      "projectName": "create-colony",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Projects\\Minecraft Mods\\create-colony\\build\\moddev\\gameTestServerRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Projects\\Minecraft Mods\\create-colony\\build\\moddev\\gameTestServerRunVmArgs.txt",
+        "-Dfml.modFolders\u003dcreatecolony%%D:\\Projects\\Minecraft Mods\\create-colony\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "Server",
+      "presentation": {
+        "group": "Mod Development - create-colony",
+        "order": 3
+      },
+      "projectName": "create-colony",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Projects\\Minecraft Mods\\create-colony\\build\\moddev\\serverRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Projects\\Minecraft Mods\\create-colony\\build\\moddev\\serverRunVmArgs.txt",
+        "-Dfml.modFolders\u003dcreatecolony%%D:\\Projects\\Minecraft Mods\\create-colony\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    }
+  ]
+}
