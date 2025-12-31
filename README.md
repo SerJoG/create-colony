@@ -1,6 +1,6 @@
-# Create Colonies (NeoForge 1.21)
+# Create: Colonies (NeoForge 1.21)
 
-![Minecraft Version](https://img.shields.io/badge/Minecraft-1.21.1-green?style=flat-square) ![Loader](https://img.shields.io/badge/Loader-NeoForge-orange?style=flat-square) ![Create](https://img.shields.io/badge/Create-6.0.8+-blue?style=flat-square) ![alt text](https://img.shields.io/badge/MineColonies-1.21.x-red?style=flat-square)
+![Minecraft Version](https://img.shields.io/badge/Minecraft-1.21.1-green?style=flat-square) ![Loader](https://img.shields.io/badge/Loader-NeoForge-orange?style=flat-square) ![Create](https://img.shields.io/badge/Create-6.0.8+-blue?style=flat-square) ![alt text](https://img.shields.io/badge/Minecolonies-1.21.1-red?style=flat-square)
 
 **Create Colonies** is a compatibility bridge mod that connects the industrial engineering of **[Create](https://www.curseforge.com/minecraft/mc-mods/create)** with the thriving civilizations of **[MineColonies](https://www.curseforge.com/minecraft/mc-mods/minecolonies)**.
 
@@ -10,7 +10,7 @@ This project is a modern port designed for **Minecraft 1.21.1 on NeoForge**.
 
 ### 📋 Smart Resource Management
 Tired of manually checking what blocks your Builder needs?
-*   **Clipboard Integration:** Right-click a MineColonies **Hut Builder** block with a **Create Clipboard**.
+*   **Clipboard Integration:** Right-click while shifted a Minecolonies **Hut Builder** block with a **Create Clipboard**.
 *   **Automatic Checklists:** The mod automatically reads the building's required resources and writes them onto the Clipboard as a checklist.
 *   **Visual Tracking:** Easily track gathered materials and hand them off to your builder without switching back and forth between GUIs.
 
@@ -29,7 +29,7 @@ Tired of manually checking what blocks your Builder needs?
 
 ## 📜 Credits & Inspiration
 
-This mod stands on the shoulders of giants. It is heavily inspired by and based on the work of previous developers who pioneered Create/MineColonies compatibility:
+This mod stands on the shoulders of giants. It is heavily inspired by and based on the work of previous developers who pioneered Create/Minecolonies compatibility:
 
 *   **Create Colonies** by **[MotionlessTrain](https://github.com/MotionlessTrain)**: The direct predecessor to this codebase.
 *   **Create Colonial** by **[Tribulla](https://www.curseforge.com/members/tribulla/projects)**: The original inspiration for bridging these two mods.
