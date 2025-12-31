@@ -2,7 +2,6 @@ package com.serjog.createcolony.placementhandler;
 
 import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
-import com.ldtteam.structurize.placement.handlers.placement.IPlacementHandler.ActionProcessingResult;
 import com.serjog.createcolony.resources.CreateResources;
 import com.serjog.createcolony.utils.BlockPosUtil;
 import com.serjog.createcolony.utils.BlockPosUtil.DoubleBlockPos;
