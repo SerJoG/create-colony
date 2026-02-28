@@ -12,7 +12,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -60,7 +59,6 @@ public class TrainStationPlacementHandler extends SimplePlacementHandler {
             if (arr.length == 3) {
                 BlockPos localPosFromStation = new BlockPos(arr[0], arr[1], arr[2]);
                 BlockPos newPosFromStation;
-                //System.out.println("TargetDirection: " + nbt.getInt("TargetDirection"));
                 if (mirror == Mirror.NONE) {
                     newPosFromStation = localPosFromStation.rotate(rotation);
                 } else {
@@ -75,6 +73,48 @@ public class TrainStationPlacementHandler extends SimplePlacementHandler {
                     int currentDir = nbt.getInt("TargetDirection");
                     currentDir = 1 - currentDir;
                     nbt.putInt("TargetDirection", currentDir);
+                }
+                if (nbt.contains("Bezier", Tag.TAG_COMPOUND)) {
+                    CompoundTag bezierNbt = nbt.getCompound("Bezier");
+                    if (bezierNbt.contains("Key", Tag.TAG_INT_ARRAY)) {
+                        int[] keyCoords = bezierNbt.getIntArray("Key");
+
+                        int x = keyCoords[0];
+                        int y = keyCoords[1];
+                        int z = keyCoords[2];
+
+                        BlockPos localPosFromKey = new BlockPos(x, y, z);
+                        BlockPos newPosFromKey = localPosFromKey;
+
+                        if (mirror == Mirror.FRONT_BACK) {
+                            if (rotation == Rotation.NONE) {
+                                newPosFromKey = new BlockPos(-x, y, z);
+                                int currentDir = nbt.getInt("TargetDirection");
+                                currentDir = 1 - currentDir;
+                                nbt.putInt("TargetDirection", currentDir);
+                            } else if (rotation == Rotation.COUNTERCLOCKWISE_90) {
+                                newPosFromKey = new BlockPos(z, y, x);
+                            }  else if (rotation == Rotation.CLOCKWISE_180) {
+                                newPosFromKey = new BlockPos(x, y, -z);
+                            } else if (rotation == Rotation.CLOCKWISE_90) {
+                                newPosFromKey = new BlockPos(-z, y, -x);
+                                int currentDir = nbt.getInt("TargetDirection");
+                                currentDir = 1 - currentDir;
+                                nbt.putInt("TargetDirection", currentDir);
+                            }
+                        }
+
+                        if (mirror == Mirror.NONE) {
+                            newPosFromKey = localPosFromKey.rotate(rotation);
+                            if (rotation == Rotation.CLOCKWISE_180 || rotation == Rotation.COUNTERCLOCKWISE_90) {
+                                int currentDir = nbt.getInt("TargetDirection");
+                                currentDir = 1 - currentDir;
+                                nbt.putInt("TargetDirection", currentDir);
+                            }
+                        }
+
+                        bezierNbt.putIntArray("Key", new int[]{newPosFromKey.getX(), newPosFromKey.getY(), newPosFromKey.getZ()});
+                    }
                 }
             }
         }

@@ -66,16 +66,12 @@ public class TrackPlacementHandler extends SimplePlacementHandler {
     public ActionProcessingResult handle(Blueprint blueprint, Level world, BlockPos pos, BlockState blockState, @Nullable CompoundTag tileEntityData, boolean complete, BlockPos centerPos, RotationMirror settings) {
         if (blockState.hasProperty(TrackBlock.SHAPE)) {
             TrackShape trackShape = blockState.getValue(TrackBlock.SHAPE);
-            System.out.println("Shape before: " + trackShape);
             //TrackShape rotatedShape = rotateTrackShape(trackShape, settings.rotation());
-            //System.out.println("Shape after: " + rotatedShape);
             //blockState = blockState.setValue(TrackBlock.SHAPE, rotatedShape);
         }
 
         if (tileEntityData != null) {
             rotateTrackNbt(tileEntityData, settings);
-            TrackShape trackShape = blockState.getValue(TrackBlock.SHAPE);
-            System.out.println("Shape after: " + trackShape);
         }
 
         boolean success = world.setBlock(pos, blockState, 3);
@@ -88,7 +84,7 @@ public class TrackPlacementHandler extends SimplePlacementHandler {
             var be = world.getBlockEntity(pos);
             if (be instanceof TrackBlockEntity trackBe) {
                 trackBe.loadWithComponents(tileEntityData, world.registryAccess());
-                trackBe.refreshBlockState();
+                //trackBe.refreshBlockState();
                 trackBe.setChanged();
             }
         }
@@ -127,24 +123,26 @@ public class TrackPlacementHandler extends SimplePlacementHandler {
         for (int i = 0; i < connections.size(); i++) {
             CompoundTag conn = connections.getCompound(i);
 
-            for (String type : new String[]{"Starts", "Normals", "Axes"}) {
-                if (conn.contains(type, Tag.TAG_LIST)) {
-                    ListTag vList = conn.getList(type, Tag.TAG_COMPOUND);
-                    for (int j = 0; j < vList.size(); j++) {
-                        CompoundTag vTag = vList.getCompound(j);
-                        ListTag vecData = vTag.getList("V", Tag.TAG_DOUBLE);
-                        Vec3 vec = new Vec3(vecData.getDouble(0), vecData.getDouble(1), vecData.getDouble(2));
-                        Vec3 transformed = transformVec(vec, rotation, mirror);
+            if (rotation != Rotation.NONE || mirror != Mirror.NONE) {
+                for (String type : new String[]{"Starts", "Normals", "Axes"}) {
+                    if (conn.contains(type, Tag.TAG_LIST)) {
+                        ListTag vList = conn.getList(type, Tag.TAG_COMPOUND);
+                        for (int j = 0; j < vList.size(); j++) {
+                            CompoundTag vTag = vList.getCompound(j);
+                            ListTag vecData = vTag.getList("V", Tag.TAG_DOUBLE);
+                            Vec3 vec = new Vec3(vecData.getDouble(0), vecData.getDouble(1), vecData.getDouble(2));
+                            Vec3 transformed = transformVec(vec, rotation, mirror);
 
-                        if (type.equals("Starts")) {
-                            transformed = transformed.add(getStartsOffset(rm));
+                            if (type.equals("Starts")) {
+                                transformed = transformed.add(getStartsOffset(rm));
+                            }
+
+                            ListTag newV = new ListTag();
+                            newV.add(net.minecraft.nbt.DoubleTag.valueOf(transformed.x));
+                            newV.add(net.minecraft.nbt.DoubleTag.valueOf(transformed.y));
+                            newV.add(net.minecraft.nbt.DoubleTag.valueOf(transformed.z));
+                            vTag.put("V", newV);
                         }
-
-                        ListTag newV = new ListTag();
-                        newV.add(net.minecraft.nbt.DoubleTag.valueOf(transformed.x));
-                        newV.add(net.minecraft.nbt.DoubleTag.valueOf(transformed.y));
-                        newV.add(net.minecraft.nbt.DoubleTag.valueOf(transformed.z));
-                        vTag.put("V", newV);
                     }
                 }
             }
@@ -154,10 +152,10 @@ public class TrackPlacementHandler extends SimplePlacementHandler {
                 ListTag newP = new ListTag();
                 for (int k = 0; k < pList.size(); k++) {
                     BlockPos p = readPos(pList.getCompound(k).getIntArray("Pos"));
-                    BlockPos rotated = p.rotate(rotation);
-                    BlockPos mirrored = applyMirror(rotated, mirror);
+                    BlockPos mirrored = applyMirror(p, mirror);
+                    BlockPos rotated = mirrored.rotate(rotation);
                     CompoundTag pTag = new CompoundTag();
-                    pTag.putIntArray("Pos", new int[]{mirrored.getX(), mirrored.getY(), mirrored.getZ()});
+                    pTag.putIntArray("Pos", new int[]{rotated.getX(), rotated.getY(), rotated.getZ()});
                     newP.add(pTag);
                 }
                 conn.put("Positions", newP);
