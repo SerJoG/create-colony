@@ -175,6 +175,32 @@ dependencies {
     //implementation "com.ldtteam:domum_ornamentum:${domumornamentum_version}"
     implementation "curse.maven:domum-ornamentum-527361:${domumornamentum_file}"
 
+    // Optional
+    compileOnly "curse.maven:byzantine-styles-pack-for-minecolonies-974855:7538315"
+    runtimeOnly "curse.maven:byzantine-styles-pack-for-minecolonies-974855:7538315"
+    compileOnly "curse.maven:controlling-250398:6368976"
+    runtimeOnly "curse.maven:controlling-250398:6368976"
+    compileOnly "curse.maven:jade-324717:7545219"
+    runtimeOnly "curse.maven:jade-324717:7545219"
+    compileOnly "curse.maven:jadecolonies-882310:5721338"
+    runtimeOnly "curse.maven:jadecolonies-882310:5721338"
+    compileOnly "curse.maven:mouse-tweaks-60089:5637846"
+    runtimeOnly "curse.maven:mouse-tweaks-60089:5637846"
+    compileOnly "curse.maven:searchables-858542:5831692"
+    runtimeOnly "curse.maven:searchables-858542:5831692"
+    compileOnly "curse.maven:stylecolonies-827507:7524693"
+    runtimeOnly "curse.maven:stylecolonies-827507:7524693"
+    //compileOnly "curse.maven:effortlessbuilding-sophisticated-1414718:7542269"
+    //runtimeOnly "curse.maven:effortlessbuilding-sophisticated-1414718:7542269"
+    compileOnly "curse.maven:effortless-building-302113:6331031"
+    runtimeOnly "curse.maven:effortless-building-302113:6331031"
+    compileOnly "curse.maven:effortless-676885:6251960"
+    runtimeOnly "curse.maven:effortless-676885:6251960"
+    compileOnly "curse.maven:building-gadgets-298187:6850515"
+    runtimeOnly "curse.maven:building-gadgets-298187:6850515"
+    compileOnly "curse.maven:construction-sticks-1156098:6912513"
+    runtimeOnly "curse.maven:construction-sticks-1156098:6912513"
+
     // For more info:
     // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
     // http://www.gradle.org/docs/current/userguide/dependency_management.html

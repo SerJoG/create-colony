@@ -2,50 +2,58 @@ package com.serjog.createcolony.placementhandler;
 
 import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
-import com.serjog.createcolony.resources.CreateResources;
-import com.serjog.createcolony.utils.BlockPosUtil;
-import com.serjog.createcolony.utils.BlockPosUtil.DoubleBlockPos;
-import com.serjog.createcolony.utils.ItemUtils;
+import com.simibubi.create.content.trains.track.TrackBlock;
+import com.simibubi.create.content.trains.track.TrackBlockEntity;
+import com.simibubi.create.content.trains.track.TrackShape;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.serjog.createcolony.resources.CreateResources.Blocks.track;
+import static com.serjog.createcolony.resources.CreateResources.Items.metalGirder;
+
 public class TrackPlacementHandler extends SimplePlacementHandler {
     @Override
     public boolean canHandle(Level level, BlockPos blockPos, BlockState blockState) {
-        return blockState.is(CreateResources.Blocks.track);
+        return track.isBound() && blockState.is(track.get());
     }
 
     @Override
     public List<ItemStack> getRequiredItems(Level level, BlockPos blockPos, BlockState blockState, @Nullable CompoundTag compoundTag, boolean b) {
 
         final List<ItemStack> neededItems = new ArrayList<>();
-        neededItems.add(ItemUtils.stackFromDeferred(CreateResources.Blocks.track));
+        neededItems.add(new ItemStack(blockState.getBlock().asItem()));
 
-        if (blockState.is(CreateResources.Blocks.track) &&
-                compoundTag != null && compoundTag.contains("Connections")) {
-            final ListTag connections = compoundTag.getList("Connections", Tag.TAG_COMPOUND);
+        if (compoundTag != null && compoundTag.contains("Connections", Tag.TAG_LIST)) {
+            ListTag connections = compoundTag.getList("Connections", Tag.TAG_COMPOUND);
             for (int i = 0; i < connections.size(); i++) {
-                final var connection = connections.getCompound(i);
-                if (connection.getByte("Primary") != 0 &&
-                        connection.contains("Positions", Tag.TAG_LIST)) {
-                    BlockPos[] positions = BlockPosUtil.getList(connection, "Positions").toArray(BlockPos[]::new);
-                    if (positions.length == 2) {
-                        final int deltaX = Math.abs(positions[0].getX() - positions[1].getX());
-                        final int deltaZ = Math.abs(positions[0].getZ() - positions[1].getZ());
-                        final int trackAmount = (deltaX == 0 || deltaZ == 0) ? deltaX + deltaZ : deltaX * 3/2;
-                        neededItems.add(ItemUtils.stackFromDeferred(CreateResources.Blocks.track, trackAmount));
+                CompoundTag conn = connections.getCompound(i);
+                if (conn.getByte("Primary") != 0 && conn.contains("Positions", Tag.TAG_LIST)) {
+                    ListTag posList = conn.getList("Positions", Tag.TAG_COMPOUND);
+                    if (posList.size() == 2) {
+                        BlockPos p0 = readPos(posList.getCompound(0).getIntArray("Pos"));
+                        BlockPos p1 = readPos(posList.getCompound(1).getIntArray("Pos"));
 
-                        if (connection.getByte("Girder") != 0) {
-                            neededItems.add(ItemUtils.stackFromDeferred(CreateResources.Items.metalGirder, trackAmount * 2));
+                        double distance = Math.sqrt(p0.distSqr(p1));
+                        int extraTracks = (int) Math.ceil(distance);
+
+                        if (extraTracks > 1) {
+                            neededItems.add(new ItemStack(blockState.getBlock().asItem(), extraTracks));
+                        }
+
+                        if (conn.getByte("Girder") != 0 && metalGirder.isBound()) {
+                            neededItems.add(new ItemStack(metalGirder.get(), extraTracks * 2));
                         }
                     }
                 }
@@ -54,62 +62,145 @@ public class TrackPlacementHandler extends SimplePlacementHandler {
         return neededItems;
     }
 
-    private final String[] VECTOR_TYPES = {"Starts", "Normals", "Axes"};
-    private final DoubleBlockPos[] STARTS_OFFSETS = {
-            new DoubleBlockPos(0, 0, 0),
-            new DoubleBlockPos(1, 0, 0),
-            new DoubleBlockPos(1, 0, 1),
-            new DoubleBlockPos(0, 0, 1),
-            new DoubleBlockPos(1, 0, 0),
-            new DoubleBlockPos(1, 0, 1),
-            new DoubleBlockPos(0, 0, 1),
-            new DoubleBlockPos(0, 0, 0),
-    };
-
     @Override
     public ActionProcessingResult handle(Blueprint blueprint, Level world, BlockPos pos, BlockState blockState, @Nullable CompoundTag tileEntityData, boolean complete, BlockPos centerPos, RotationMirror settings) {
-        final RotationMirror blueprintRotation = blueprint.getRotationMirror();
+        if (blockState.hasProperty(TrackBlock.SHAPE)) {
+            TrackShape trackShape = blockState.getValue(TrackBlock.SHAPE);
+            System.out.println("Shape before: " + trackShape);
+            //TrackShape rotatedShape = rotateTrackShape(trackShape, settings.rotation());
+            //System.out.println("Shape after: " + rotatedShape);
+            //blockState = blockState.setValue(TrackBlock.SHAPE, rotatedShape);
+        }
 
-        if (tileEntityData != null && tileEntityData.contains("Connections", Tag.TAG_LIST)) {
-            final ListTag connections = tileEntityData.getList("Connections", Tag.TAG_COMPOUND);
-            for (int i = 0; i < connections.size(); i++) {
-                final var connection = connections.getCompound(i);
-                for (final String vectorType : VECTOR_TYPES) {
-                    if (connection.contains(vectorType, Tag.TAG_LIST)) {
-                        final ListTag vectorInfo = connection.getList(vectorType, Tag.TAG_COMPOUND);
-                        for (int j = 0; j < vectorInfo.size(); j++) {
-                            final var vectorObj = vectorInfo.getCompound(j);
-                            if (vectorObj.contains("V", Tag.TAG_LIST)) {
-                                final var vector = vectorObj.getList("V", Tag.TAG_DOUBLE);
-                                final DoubleBlockPos blockPos = new DoubleBlockPos(vector);
-                                DoubleBlockPos newBlockPos = blockPos;
-                                if (blueprintRotation.isMirrored())
-                                    newBlockPos = new DoubleBlockPos(-blockPos.x(), blockPos.y(), blockPos.z());
-                                newBlockPos = newBlockPos.rotate(blueprintRotation.rotation());
-                                if (vectorType.equals("Starts")) {
-                                    newBlockPos = newBlockPos.add(STARTS_OFFSETS[blueprintRotation.ordinal()]);
-                                }
-                                final var newVector = newBlockPos.toNBT();
-                                vectorObj.put("V", newVector);
-                            }
-                        }
-                    }
-                }
-                if (connection.contains("Positions", Tag.TAG_LIST)) {
-                    final ListTag positionInfo = BlockPosUtil.getList(connection, "Positions").stream().map(position -> {
-                        if (blueprintRotation.isMirrored()) {
-                            position = new BlockPos(-position.getX(), position.getY(), position.getZ());
-                        }
-                        final BlockPos rotated = position.rotate(blueprintRotation.rotation());
-                        final CompoundTag posTag = new CompoundTag();
-                        posTag.put("Pos", BlockPosUtil.toNBT(rotated));
-                        return posTag;
-                    }).collect(ListTag::new, ListTag::add, ListTag::addAll);
-                    connection.put("Positions", positionInfo);
-                }
+        if (tileEntityData != null) {
+            rotateTrackNbt(tileEntityData, settings);
+            TrackShape trackShape = blockState.getValue(TrackBlock.SHAPE);
+            System.out.println("Shape after: " + trackShape);
+        }
+
+        boolean success = world.setBlock(pos, blockState, 3);
+
+        if (!success) {
+            world.setBlock(pos, blockState, 2);
+        }
+
+        if (tileEntityData != null) {
+            var be = world.getBlockEntity(pos);
+            if (be instanceof TrackBlockEntity trackBe) {
+                trackBe.loadWithComponents(tileEntityData, world.registryAccess());
+                trackBe.refreshBlockState();
+                trackBe.setChanged();
             }
         }
 
-        return super.handle(world, pos, blockState, tileEntityData, complete, centerPos, settings);
+        return ActionProcessingResult.SUCCESS;
+    }
+
+    private TrackShape rotateTrackShape(TrackShape shape, Rotation rotation) {
+        TrackShape current = shape;
+        for (int i = 0; i < rotation.ordinal(); i++) {
+            current = switch (current) {
+                // Rette orizzontali
+                case XO -> TrackShape.ZO;
+                case ZO -> TrackShape.XO;
+                // Rotazione dei nodi terminali Bezier
+                case TE -> TrackShape.TW;
+                case TW -> TrackShape.TN;
+                case TN -> TrackShape.TS;
+                case TS -> TrackShape.TE;
+                // Aggiungi le pendenze (slopes) se le usi nelle schematiche
+                case AE -> TrackShape.AW;
+                case AW -> TrackShape.AN;
+                case AN -> TrackShape.AS;
+                case AS -> TrackShape.AE;
+                default -> current;
+            };
+        }
+        return current;
+    }
+
+    private void rotateTrackNbt(CompoundTag nbt, RotationMirror rm) {
+        Rotation rotation = rm.rotation();
+        Mirror mirror = rm.mirror();
+        ListTag connections = nbt.getList("Connections", Tag.TAG_COMPOUND);
+
+        for (int i = 0; i < connections.size(); i++) {
+            CompoundTag conn = connections.getCompound(i);
+
+            for (String type : new String[]{"Starts", "Normals", "Axes"}) {
+                if (conn.contains(type, Tag.TAG_LIST)) {
+                    ListTag vList = conn.getList(type, Tag.TAG_COMPOUND);
+                    for (int j = 0; j < vList.size(); j++) {
+                        CompoundTag vTag = vList.getCompound(j);
+                        ListTag vecData = vTag.getList("V", Tag.TAG_DOUBLE);
+                        Vec3 vec = new Vec3(vecData.getDouble(0), vecData.getDouble(1), vecData.getDouble(2));
+                        Vec3 transformed = transformVec(vec, rotation, mirror);
+
+                        if (type.equals("Starts")) {
+                            transformed = transformed.add(getStartsOffset(rm));
+                        }
+
+                        ListTag newV = new ListTag();
+                        newV.add(net.minecraft.nbt.DoubleTag.valueOf(transformed.x));
+                        newV.add(net.minecraft.nbt.DoubleTag.valueOf(transformed.y));
+                        newV.add(net.minecraft.nbt.DoubleTag.valueOf(transformed.z));
+                        vTag.put("V", newV);
+                    }
+                }
+            }
+
+            if (conn.contains("Positions", Tag.TAG_LIST)) {
+                ListTag pList = conn.getList("Positions", Tag.TAG_COMPOUND);
+                ListTag newP = new ListTag();
+                for (int k = 0; k < pList.size(); k++) {
+                    BlockPos p = readPos(pList.getCompound(k).getIntArray("Pos"));
+                    BlockPos rotated = p.rotate(rotation);
+                    BlockPos mirrored = applyMirror(rotated, mirror);
+                    CompoundTag pTag = new CompoundTag();
+                    pTag.putIntArray("Pos", new int[]{mirrored.getX(), mirrored.getY(), mirrored.getZ()});
+                    newP.add(pTag);
+                }
+                conn.put("Positions", newP);
+            }
+        }
+    }
+
+    private BlockPos applyMirror(BlockPos pos, Mirror mirror) {
+        return switch (mirror) {
+            case FRONT_BACK -> new BlockPos(-pos.getX(), pos.getY(), pos.getZ());
+            case LEFT_RIGHT -> new BlockPos(pos.getX(), pos.getY(), -pos.getZ());
+            default -> pos;
+        };
+    }
+
+    private Vec3 transformVec(Vec3 vec, Rotation rotation, Mirror mirror) {
+        double x = vec.x;
+        double z = vec.z;
+
+        if (mirror == Mirror.FRONT_BACK) x = -x;
+        else if (mirror == Mirror.LEFT_RIGHT) z = -z;
+
+        return switch (rotation) {
+            case CLOCKWISE_90 -> new Vec3(-z, vec.y, x);
+            case CLOCKWISE_180 -> new Vec3(-x, vec.y, -z);
+            case COUNTERCLOCKWISE_90 -> new Vec3(z, vec.y, -x);
+            default -> new Vec3(x, vec.y, z);
+        };
+    }
+
+    private Vec3 getStartsOffset(RotationMirror rm) {
+        return switch (rm.ordinal()) {
+            case 1 -> new Vec3(1, 0, 0);
+            case 2 -> new Vec3(1, 0, 1);
+            case 3 -> new Vec3(0, 0, 1);
+            case 4 -> new Vec3(1, 0, 0);
+            case 5 -> new Vec3(1, 0, 1);
+            case 6 -> new Vec3(0, 0, 1);
+            default -> new Vec3(0, 0, 0);
+        };
+    }
+
+    private BlockPos readPos(int[] arr) {
+        return (arr.length == 3) ? new BlockPos(arr[0], arr[1], arr[2]) : BlockPos.ZERO;
     }
 }
