@@ -16,4 +16,6 @@ public abstract class SimplePlacementHandler implements IPlacementHandler {
 
     @Override
     public abstract List<ItemStack> getRequiredItems(Level level, BlockPos blockPos, BlockState blockState, @Nullable CompoundTag compoundTag, boolean b);
+
+
 }

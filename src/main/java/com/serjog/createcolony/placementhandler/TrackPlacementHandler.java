@@ -22,6 +22,7 @@ import java.util.List;
 
 import static com.serjog.createcolony.resources.CreateResources.Blocks.track;
 import static com.serjog.createcolony.resources.CreateResources.Items.metalGirder;
+import static net.minecraft.nbt.DoubleTag.valueOf;
 
 public class TrackPlacementHandler extends SimplePlacementHandler {
     @Override
@@ -64,12 +65,6 @@ public class TrackPlacementHandler extends SimplePlacementHandler {
 
     @Override
     public ActionProcessingResult handle(Blueprint blueprint, Level world, BlockPos pos, BlockState blockState, @Nullable CompoundTag tileEntityData, boolean complete, BlockPos centerPos, RotationMirror settings) {
-        if (blockState.hasProperty(TrackBlock.SHAPE)) {
-            TrackShape trackShape = blockState.getValue(TrackBlock.SHAPE);
-            //TrackShape rotatedShape = rotateTrackShape(trackShape, settings.rotation());
-            //blockState = blockState.setValue(TrackBlock.SHAPE, rotatedShape);
-        }
-
         if (tileEntityData != null) {
             rotateTrackNbt(tileEntityData, settings);
         }
@@ -84,35 +79,12 @@ public class TrackPlacementHandler extends SimplePlacementHandler {
             var be = world.getBlockEntity(pos);
             if (be instanceof TrackBlockEntity trackBe) {
                 trackBe.loadWithComponents(tileEntityData, world.registryAccess());
-                //trackBe.refreshBlockState();
+                trackBe.refreshBlockState();
                 trackBe.setChanged();
             }
         }
 
         return ActionProcessingResult.SUCCESS;
-    }
-
-    private TrackShape rotateTrackShape(TrackShape shape, Rotation rotation) {
-        TrackShape current = shape;
-        for (int i = 0; i < rotation.ordinal(); i++) {
-            current = switch (current) {
-                // Rette orizzontali
-                case XO -> TrackShape.ZO;
-                case ZO -> TrackShape.XO;
-                // Rotazione dei nodi terminali Bezier
-                case TE -> TrackShape.TW;
-                case TW -> TrackShape.TN;
-                case TN -> TrackShape.TS;
-                case TS -> TrackShape.TE;
-                // Aggiungi le pendenze (slopes) se le usi nelle schematiche
-                case AE -> TrackShape.AW;
-                case AW -> TrackShape.AN;
-                case AN -> TrackShape.AS;
-                case AS -> TrackShape.AE;
-                default -> current;
-            };
-        }
-        return current;
     }
 
     private void rotateTrackNbt(CompoundTag nbt, RotationMirror rm) {
@@ -123,26 +95,24 @@ public class TrackPlacementHandler extends SimplePlacementHandler {
         for (int i = 0; i < connections.size(); i++) {
             CompoundTag conn = connections.getCompound(i);
 
-            if (rotation != Rotation.NONE || mirror != Mirror.NONE) {
-                for (String type : new String[]{"Starts", "Normals", "Axes"}) {
-                    if (conn.contains(type, Tag.TAG_LIST)) {
-                        ListTag vList = conn.getList(type, Tag.TAG_COMPOUND);
-                        for (int j = 0; j < vList.size(); j++) {
-                            CompoundTag vTag = vList.getCompound(j);
-                            ListTag vecData = vTag.getList("V", Tag.TAG_DOUBLE);
-                            Vec3 vec = new Vec3(vecData.getDouble(0), vecData.getDouble(1), vecData.getDouble(2));
-                            Vec3 transformed = transformVec(vec, rotation, mirror);
+            for (String type : new String[]{"Starts", "Normals", "Axes"}) {
+                if (conn.contains(type, Tag.TAG_LIST)) {
+                    ListTag vList = conn.getList(type, Tag.TAG_COMPOUND);
+                    for (int j = 0; j < vList.size(); j++) {
+                        CompoundTag vTag = vList.getCompound(j);
+                        ListTag vecData = vTag.getList("V", Tag.TAG_DOUBLE);
+                        Vec3 vec = new Vec3(vecData.getDouble(0), vecData.getDouble(1), vecData.getDouble(2));
+                        Vec3 transformed = transformVec(vec, rotation, mirror);
 
-                            if (type.equals("Starts")) {
-                                transformed = transformed.add(getStartsOffset(rm));
-                            }
-
-                            ListTag newV = new ListTag();
-                            newV.add(net.minecraft.nbt.DoubleTag.valueOf(transformed.x));
-                            newV.add(net.minecraft.nbt.DoubleTag.valueOf(transformed.y));
-                            newV.add(net.minecraft.nbt.DoubleTag.valueOf(transformed.z));
-                            vTag.put("V", newV);
+                        if (type.equals("Starts")) {
+                            transformed = transformed.add(getStartsOffset(rm));
                         }
+
+                        ListTag newV = new ListTag();
+                        newV.add(valueOf(transformed.x));
+                        newV.add(valueOf(transformed.y));
+                        newV.add(valueOf(transformed.z));
+                        vTag.put("V", newV);
                     }
                 }
             }
