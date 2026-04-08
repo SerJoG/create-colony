@@ -4,8 +4,9 @@ import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
 import com.ldtteam.structurize.blueprints.v1.BlueprintUtils;
 import com.ldtteam.structurize.util.BlockInfo;
-import com.serjog.createcolony.ColonyMain;
+import com.simibubi.create.content.trains.observer.TrackObserverBlockEntity;
 import com.simibubi.create.content.trains.signal.SignalBlockEntity;
+import com.simibubi.create.content.trains.station.StationBlock;
 import com.simibubi.create.content.trains.station.StationBlockEntity;
 import com.simibubi.create.content.trains.track.TrackBlockEntity;
 import net.minecraft.core.BlockPos;
@@ -16,6 +17,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.loading.FMLEnvironment;
@@ -54,14 +56,16 @@ public class BlueprintUtilsMixin {
 
             BlockEntity be = tileEntitiesMap.get(info.getPos());
 
-            if (be instanceof StationBlockEntity || be instanceof TrackBlockEntity || be instanceof  SignalBlockEntity) {
+            if (be instanceof StationBlockEntity || be instanceof TrackBlockEntity || be instanceof  SignalBlockEntity || be instanceof TrackObserverBlockEntity) {
                 try {
                     CompoundTag rotatedNbt = nbt.copy();
 
-                    if (be instanceof StationBlockEntity) {
-                        create_colony$rotateStationNbtForPreview(rotatedNbt, rotationMirror);
+                    if (be instanceof StationBlockEntity stationBlockEntity) {
+                        create_colony$rotateStationNbtForPreview(stationBlockEntity.getBlockState(), rotatedNbt, rotationMirror);
                     } else if (be instanceof SignalBlockEntity) {
                         create_colony$rotateSignalNbtForPreview(rotatedNbt, rotationMirror);
+                    } else if (be instanceof TrackObserverBlockEntity) {
+                        create_colony$rotateObserverNbtForPreview(rotatedNbt, rotationMirror);
                     } else {
                         create_colony$rotateTrackNbtForPreview(rotatedNbt, rotationMirror);
                     }
@@ -80,7 +84,7 @@ public class BlueprintUtilsMixin {
 
 
     @Unique
-    private static void create_colony$rotateStationNbtForPreview(CompoundTag nbt, RotationMirror rm) {
+    private static void create_colony$rotateStationNbtForPreview(BlockState state, CompoundTag nbt, RotationMirror rm) {
         Rotation rotation = rm.rotation();
         Mirror mirror = rm.mirror();
 
@@ -100,6 +104,11 @@ public class BlueprintUtilsMixin {
                     currentDir = 1 - currentDir;
                     nbt.putInt("TargetDirection", currentDir);
                 } else if ((rotation == Rotation.CLOCKWISE_90 || rotation == Rotation.NONE) && mirror == Mirror.FRONT_BACK && nbt.contains("TargetDirection")) {
+                    int currentDir = nbt.getInt("TargetDirection");
+                    currentDir = 1 - currentDir;
+                    nbt.putInt("TargetDirection", currentDir);
+                }
+                if (state.getValue(StationBlock.ASSEMBLING) && (rotation == Rotation.CLOCKWISE_90 || rotation == Rotation.COUNTERCLOCKWISE_90)) {
                     int currentDir = nbt.getInt("TargetDirection");
                     currentDir = 1 - currentDir;
                     nbt.putInt("TargetDirection", currentDir);
@@ -261,6 +270,57 @@ public class BlueprintUtilsMixin {
                                 currentDir = 1 - currentDir;
                                 nbt.putInt("TargetDirection", currentDir);
                             }
+                        }
+
+                        bezierNbt.putIntArray("Key", new int[]{newPosFromKey.getX(), newPosFromKey.getY(), newPosFromKey.getZ()});
+                    }
+                }
+            }
+        }
+    }
+
+    @Unique
+    private static void create_colony$rotateObserverNbtForPreview(CompoundTag nbt, RotationMirror rm) {
+        Rotation rotation = rm.rotation();
+        Mirror mirror = rm.mirror();
+
+        if (nbt.contains("TargetTrack", Tag.TAG_INT_ARRAY)) {
+            int[] arr = nbt.getIntArray("TargetTrack");
+            if (arr.length == 3) {
+                BlockPos localPosFromObserver = new BlockPos(arr[0], arr[1], arr[2]);
+                BlockPos newPosFromObserver;
+                if (mirror == Mirror.NONE) {
+                    newPosFromObserver = localPosFromObserver.rotate(rotation);
+                } else {
+                    newPosFromObserver = new BlockPos(-localPosFromObserver.getX(), localPosFromObserver.getY(), localPosFromObserver.getZ()).rotate(rotation);
+                }
+                nbt.putIntArray("TargetTrack", new int[]{newPosFromObserver.getX(),  newPosFromObserver.getY(), newPosFromObserver.getZ()});
+                if (nbt.contains("Bezier", Tag.TAG_COMPOUND)) {
+                    CompoundTag bezierNbt = nbt.getCompound("Bezier");
+                    if (bezierNbt.contains("Key", Tag.TAG_INT_ARRAY)) {
+                        int[] keyCoords = bezierNbt.getIntArray("Key");
+
+                        int x = keyCoords[0];
+                        int y = keyCoords[1];
+                        int z = keyCoords[2];
+
+                        BlockPos localPosFromKey = new BlockPos(x, y, z);
+                        BlockPos newPosFromKey = localPosFromKey;
+
+                        if (mirror == Mirror.FRONT_BACK) {
+                            if (rotation == Rotation.NONE) {
+                                newPosFromKey = new BlockPos(-x, y, z);
+                            } else if (rotation == Rotation.COUNTERCLOCKWISE_90) {
+                                newPosFromKey = new BlockPos(z, y, x);
+                            }  else if (rotation == Rotation.CLOCKWISE_180) {
+                                newPosFromKey = new BlockPos(x, y, -z);
+                            } else if (rotation == Rotation.CLOCKWISE_90) {
+                                newPosFromKey = new BlockPos(-z, y, -x);
+                            }
+                        }
+
+                        if (mirror == Mirror.NONE) {
+                            newPosFromKey = localPosFromKey.rotate(rotation);
                         }
 
                         bezierNbt.putIntArray("Key", new int[]{newPosFromKey.getX(), newPosFromKey.getY(), newPosFromKey.getZ()});

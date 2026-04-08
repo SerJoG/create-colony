@@ -19,6 +19,7 @@ public class PlacementHandler {
     private static void addHandler(IPlacementHandler handler) {
         com.ldtteam.structurize.placement.handlers.placement.PlacementHandlers.add(handler);
     }
+
     public static void initialiseHandlers(FMLLoadCompleteEvent ignored) {
         addHandler(new BeltPlacementHandler());
         addHandler(new ChainConveyorPlacementHandler());

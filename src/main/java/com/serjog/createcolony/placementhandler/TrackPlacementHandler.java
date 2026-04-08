@@ -2,6 +2,7 @@ package com.serjog.createcolony.placementhandler;
 
 import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
+import com.mojang.logging.LogUtils;
 import com.simibubi.create.content.trains.track.TrackBlock;
 import com.simibubi.create.content.trains.track.TrackBlockEntity;
 import com.simibubi.create.content.trains.track.TrackShape;
@@ -16,6 +17,7 @@ import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +27,8 @@ import static com.serjog.createcolony.resources.CreateResources.Items.metalGirde
 import static net.minecraft.nbt.DoubleTag.valueOf;
 
 public class TrackPlacementHandler extends SimplePlacementHandler {
+    private static final Logger LOGGER = LogUtils.getLogger();
+
     @Override
     public boolean canHandle(Level level, BlockPos blockPos, BlockState blockState) {
         return track.isBound() && blockState.is(track.get());
@@ -92,6 +96,10 @@ public class TrackPlacementHandler extends SimplePlacementHandler {
         Mirror mirror = rm.mirror();
         ListTag connections = nbt.getList("Connections", Tag.TAG_COMPOUND);
 
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Full NBT before: {}", nbt);
+        }
+
         for (int i = 0; i < connections.size(); i++) {
             CompoundTag conn = connections.getCompound(i);
 
@@ -130,6 +138,10 @@ public class TrackPlacementHandler extends SimplePlacementHandler {
                 }
                 conn.put("Positions", newP);
             }
+        }
+
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Full NBT after: {}", nbt);
         }
     }
 

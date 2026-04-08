@@ -2,7 +2,7 @@ package com.serjog.createcolony.placementhandler;
 
 import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
-import com.serjog.createcolony.ColonyMain;
+import com.mojang.logging.LogUtils;
 import com.simibubi.create.content.trains.signal.SignalBlock;
 import com.simibubi.create.content.trains.signal.SignalBlockEntity;
 import net.minecraft.core.BlockPos;
@@ -15,6 +15,7 @@ import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +24,8 @@ import java.util.UUID;
 import static net.minecraft.nbt.DoubleTag.valueOf;
 
 public class TrainSignalPlacementHandler extends SimplePlacementHandler {
+    private static final Logger LOGGER = LogUtils.getLogger();
+
     @Override
     public boolean canHandle(Level world, BlockPos pos, BlockState blockState) {
         return (blockState.getBlock() instanceof SignalBlock);
@@ -64,8 +67,8 @@ public class TrainSignalPlacementHandler extends SimplePlacementHandler {
             nbt.putUUID("Id", UUID.randomUUID());
         }
 
-        if (ColonyMain.LOGGER.isDebugEnabled()) {
-            ColonyMain.LOGGER.debug("Full NBT before: {}", nbt);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Full NBT before: {}", nbt);
         }
 
         if (nbt.contains("TargetTrack", Tag.TAG_INT_ARRAY)) {
@@ -140,8 +143,8 @@ public class TrainSignalPlacementHandler extends SimplePlacementHandler {
             }
         }
 
-        if (ColonyMain.LOGGER.isDebugEnabled()) {
-            ColonyMain.LOGGER.debug("Full NBT after: {}", nbt);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Full NBT after: {}", nbt);
         }
     }
 }

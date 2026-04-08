@@ -2,8 +2,7 @@ package com.serjog.createcolony.placementhandler;
 
 import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
-import com.serjog.createcolony.ColonyMain;
-import com.simibubi.create.content.trains.signal.SignalBlock;
+import com.mojang.logging.LogUtils;
 import com.simibubi.create.content.trains.station.StationBlock;
 import com.simibubi.create.content.trains.station.StationBlockEntity;
 import net.minecraft.core.BlockPos;
@@ -16,14 +15,18 @@ import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static net.minecraft.nbt.DoubleTag.valueOf;
 
 public class TrainStationPlacementHandler extends SimplePlacementHandler {
+    private static final Logger LOGGER = LogUtils.getLogger();
+
     @Override
     public boolean canHandle(Level world, BlockPos pos, BlockState blockState) {
         return (blockState.getBlock() instanceof StationBlock);
@@ -39,7 +42,14 @@ public class TrainStationPlacementHandler extends SimplePlacementHandler {
     @Override
     public ActionProcessingResult handle(Blueprint blueprint, Level world, BlockPos pos, BlockState blockState, @Nullable CompoundTag tileEntityData, boolean complete, BlockPos centerPos, RotationMirror settings) {
         if (tileEntityData != null) {
-            rotateStationNbt(tileEntityData, settings);
+            rotateStationNbt(blockState, tileEntityData, settings);
+        }
+
+        if (LOGGER.isDebugEnabled()) {
+            String props = blockState.getValues().entrySet().stream()
+                    .map(entry -> entry.getKey().getName() + "=" + entry.getValue())
+                    .collect(Collectors.joining(", ", "{", "}"));
+            LOGGER.debug("Properties: {}", props);
         }
 
         world.setBlock(pos, blockState, 3);
@@ -56,7 +66,7 @@ public class TrainStationPlacementHandler extends SimplePlacementHandler {
         return ActionProcessingResult.SUCCESS;
     }
 
-    private void rotateStationNbt(CompoundTag nbt, RotationMirror rm) {
+    private void rotateStationNbt(BlockState state, CompoundTag nbt, RotationMirror rm) {
         Rotation rotation = rm.rotation();
         Mirror mirror = rm.mirror();
 
@@ -64,8 +74,8 @@ public class TrainStationPlacementHandler extends SimplePlacementHandler {
             nbt.putUUID("Id", UUID.randomUUID());
         }
 
-        if (ColonyMain.LOGGER.isDebugEnabled()) {
-            ColonyMain.LOGGER.debug("Full NBT before: {}", nbt);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Full NBT before: {} Rotation to apply: {} Mirror to apply: {}", nbt, rotation, mirror);
         }
 
         if (nbt.contains("TargetTrack", Tag.TAG_INT_ARRAY)) {
@@ -84,6 +94,11 @@ public class TrainStationPlacementHandler extends SimplePlacementHandler {
                     currentDir = 1 - currentDir;
                     nbt.putInt("TargetDirection", currentDir);
                 } else if ((rotation == Rotation.CLOCKWISE_90 || rotation == Rotation.NONE) && mirror == Mirror.FRONT_BACK && nbt.contains("TargetDirection")) {
+                    int currentDir = nbt.getInt("TargetDirection");
+                    currentDir = 1 - currentDir;
+                    nbt.putInt("TargetDirection", currentDir);
+                }
+                if (state.getValue(StationBlock.ASSEMBLING) && localPosFromStation.getX() != 0 && newPosFromStation.getZ() != 0) {
                     int currentDir = nbt.getInt("TargetDirection");
                     currentDir = 1 - currentDir;
                     nbt.putInt("TargetDirection", currentDir);
@@ -143,8 +158,8 @@ public class TrainStationPlacementHandler extends SimplePlacementHandler {
             }
         }
 
-        if (ColonyMain.LOGGER.isDebugEnabled()) {
-            ColonyMain.LOGGER.debug("Full NBT after: {}", nbt);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Full NBT after: {} Rotation: {} Mirror: {}", nbt, rotation, mirror);
         }
     }
 }
