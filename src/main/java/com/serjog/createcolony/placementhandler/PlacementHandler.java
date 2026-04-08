@@ -31,6 +31,7 @@ public class PlacementHandler {
         addHandler(new TrainStationPlacementHandler());
         addHandler(new TrackPlacementHandler());
         addHandler(new TrainSignalPlacementHandler());
+        addHandler(new TrainObserverPlacementHandler());
         if (Config.isDebugLoggingEnabled()) {
             addHandler(new DebugPlacementHandler());
         }

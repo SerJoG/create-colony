@@ -2,14 +2,14 @@ package com.serjog.createcolony.placementhandler;
 
 import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
+import com.ldtteam.structurize.placement.handlers.placement.IPlacementHandler;
 import com.serjog.createcolony.ColonyMain;
-import com.simibubi.create.content.trains.signal.SignalBlock;
-import com.simibubi.create.content.trains.station.StationBlock;
-import com.simibubi.create.content.trains.station.StationBlockEntity;
+import com.simibubi.create.content.trains.observer.TrackObserverBlock;
+import com.simibubi.create.content.trains.observer.TrackObserverBlockEntity;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Mirror;
@@ -23,10 +23,10 @@ import java.util.UUID;
 
 import static net.minecraft.nbt.DoubleTag.valueOf;
 
-public class TrainStationPlacementHandler extends SimplePlacementHandler {
+public class TrainObserverPlacementHandler extends SimplePlacementHandler {
     @Override
     public boolean canHandle(Level world, BlockPos pos, BlockState blockState) {
-        return (blockState.getBlock() instanceof StationBlock);
+        return (blockState.getBlock() instanceof TrackObserverBlock);
     }
 
     @Override
@@ -37,26 +37,26 @@ public class TrainStationPlacementHandler extends SimplePlacementHandler {
     }
 
     @Override
-    public ActionProcessingResult handle(Blueprint blueprint, Level world, BlockPos pos, BlockState blockState, @Nullable CompoundTag tileEntityData, boolean complete, BlockPos centerPos, RotationMirror settings) {
+    public IPlacementHandler.ActionProcessingResult handle(Blueprint blueprint, Level world, BlockPos pos, BlockState blockState, @Nullable CompoundTag tileEntityData, boolean complete, BlockPos centerPos, RotationMirror settings) {
         if (tileEntityData != null) {
-            rotateStationNbt(tileEntityData, settings);
+            rotateObserverNbt(tileEntityData, settings);
         }
 
         world.setBlock(pos, blockState, 3);
 
         if (tileEntityData != null) {
             var be = world.getBlockEntity(pos);
-            if (be instanceof StationBlockEntity stationBe) {
-                stationBe.loadWithComponents(tileEntityData, world.registryAccess());
-                stationBe.refreshBlockState();
-                stationBe.setChanged();
+            if (be instanceof TrackObserverBlockEntity trackObserverBe) {
+                trackObserverBe.loadWithComponents(tileEntityData, world.registryAccess());
+                trackObserverBe.refreshBlockState();
+                trackObserverBe.setChanged();
             }
         }
 
-        return ActionProcessingResult.SUCCESS;
+        return IPlacementHandler.ActionProcessingResult.SUCCESS;
     }
 
-    private void rotateStationNbt(CompoundTag nbt, RotationMirror rm) {
+    private void rotateObserverNbt(CompoundTag nbt, RotationMirror rm) {
         Rotation rotation = rm.rotation();
         Mirror mirror = rm.mirror();
 
@@ -71,15 +71,15 @@ public class TrainStationPlacementHandler extends SimplePlacementHandler {
         if (nbt.contains("TargetTrack", Tag.TAG_INT_ARRAY)) {
             int[] arr = nbt.getIntArray("TargetTrack");
             if (arr.length == 3) {
-                BlockPos localPosFromStation = new BlockPos(arr[0], arr[1], arr[2]);
-                BlockPos newPosFromStation;
+                BlockPos localPosFromObserver = new BlockPos(arr[0], arr[1], arr[2]);
+                BlockPos newPosFromObserver;
                 if (mirror == Mirror.NONE) {
-                    newPosFromStation = localPosFromStation.rotate(rotation);
+                    newPosFromObserver = localPosFromObserver.rotate(rotation);
                 } else {
-                    newPosFromStation = new BlockPos(-localPosFromStation.getX(), localPosFromStation.getY(), localPosFromStation.getZ()).rotate(rotation);
+                    newPosFromObserver = new BlockPos(-localPosFromObserver.getX(), localPosFromObserver.getY(), localPosFromObserver.getZ()).rotate(rotation);
                 }
-                nbt.putIntArray("TargetTrack", new int[]{newPosFromStation.getX(),  newPosFromStation.getY(), newPosFromStation.getZ()});
-                if ((rotation == Rotation.CLOCKWISE_180 || rotation == Rotation.COUNTERCLOCKWISE_90) && mirror == Mirror.NONE && nbt.contains("TargetDirection")) {
+                nbt.putIntArray("TargetTrack", new int[]{newPosFromObserver.getX(),  newPosFromObserver.getY(), newPosFromObserver.getZ()});
+                /*if ((rotation == Rotation.CLOCKWISE_180 || rotation == Rotation.COUNTERCLOCKWISE_90) && mirror == Mirror.NONE && nbt.contains("TargetDirection")) {
                     int currentDir = nbt.getInt("TargetDirection");
                     currentDir = 1 - currentDir;
                     nbt.putInt("TargetDirection", currentDir);
@@ -87,7 +87,7 @@ public class TrainStationPlacementHandler extends SimplePlacementHandler {
                     int currentDir = nbt.getInt("TargetDirection");
                     currentDir = 1 - currentDir;
                     nbt.putInt("TargetDirection", currentDir);
-                }
+                }**/
                 if (nbt.contains("PrevAxis", Tag.TAG_LIST)) {
                     ListTag axis = nbt.getList("PrevAxis", Tag.TAG_DOUBLE);
                     if ((rotation == Rotation.CLOCKWISE_90 ||  rotation == Rotation.COUNTERCLOCKWISE_90)) {
@@ -113,27 +113,27 @@ public class TrainStationPlacementHandler extends SimplePlacementHandler {
                         if (mirror == Mirror.FRONT_BACK) {
                             if (rotation == Rotation.NONE) {
                                 newPosFromKey = new BlockPos(-x, y, z);
-                                int currentDir = nbt.getInt("TargetDirection");
-                                currentDir = 1 - currentDir;
-                                nbt.putInt("TargetDirection", currentDir);
+                                //int currentDir = nbt.getInt("TargetDirection");
+                                //currentDir = 1 - currentDir;
+                                //nbt.putInt("TargetDirection", currentDir);
                             } else if (rotation == Rotation.COUNTERCLOCKWISE_90) {
                                 newPosFromKey = new BlockPos(z, y, x);
                             }  else if (rotation == Rotation.CLOCKWISE_180) {
                                 newPosFromKey = new BlockPos(x, y, -z);
                             } else if (rotation == Rotation.CLOCKWISE_90) {
                                 newPosFromKey = new BlockPos(-z, y, -x);
-                                int currentDir = nbt.getInt("TargetDirection");
-                                currentDir = 1 - currentDir;
-                                nbt.putInt("TargetDirection", currentDir);
+                                //int currentDir = nbt.getInt("TargetDirection");
+                                //currentDir = 1 - currentDir;
+                                //nbt.putInt("TargetDirection", currentDir);
                             }
                         }
 
                         if (mirror == Mirror.NONE) {
                             newPosFromKey = localPosFromKey.rotate(rotation);
                             if (rotation == Rotation.CLOCKWISE_180 || rotation == Rotation.COUNTERCLOCKWISE_90) {
-                                int currentDir = nbt.getInt("TargetDirection");
-                                currentDir = 1 - currentDir;
-                                nbt.putInt("TargetDirection", currentDir);
+                                //int currentDir = nbt.getInt("TargetDirection");
+                                //currentDir = 1 - currentDir;
+                                //nbt.putInt("TargetDirection", currentDir);
                             }
                         }
 

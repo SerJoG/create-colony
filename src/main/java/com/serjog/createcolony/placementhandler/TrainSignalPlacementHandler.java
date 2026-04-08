@@ -2,6 +2,7 @@ package com.serjog.createcolony.placementhandler;
 
 import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
+import com.serjog.createcolony.ColonyMain;
 import com.simibubi.create.content.trains.signal.SignalBlock;
 import com.simibubi.create.content.trains.signal.SignalBlockEntity;
 import net.minecraft.core.BlockPos;
@@ -17,6 +18,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static net.minecraft.nbt.DoubleTag.valueOf;
 
@@ -47,6 +49,7 @@ public class TrainSignalPlacementHandler extends SimplePlacementHandler {
                 signalBe.loadWithComponents(tileEntityData, world.registryAccess());
                 signalBe.refreshBlockState();
                 signalBe.setChanged();
+                world.sendBlockUpdated(signalBe.getBlockPos(), signalBe.getBlockState(), signalBe.getBlockState(), 3);
             }
         }
 
@@ -57,14 +60,36 @@ public class TrainSignalPlacementHandler extends SimplePlacementHandler {
         Rotation rotation = rm.rotation();
         Mirror mirror = rm.mirror();
 
+        if (nbt.contains("Id")) {
+            nbt.putUUID("Id", UUID.randomUUID());
+        }
+
+        if (ColonyMain.LOGGER.isDebugEnabled()) {
+            ColonyMain.LOGGER.debug("Full NBT before: {}", nbt);
+        }
+
         if (nbt.contains("TargetTrack", Tag.TAG_INT_ARRAY)) {
             int[] arr = nbt.getIntArray("TargetTrack");
-            ListTag axis = nbt.getList("PrevAxis", Tag.TAG_DOUBLE);
-            if (arr.length == 3 && axis.size() == 3) {
-                BlockPos localPosFromStation = new BlockPos(arr[0], arr[1], arr[2]);
-                BlockPos newPosFromStation;
+            if (arr.length == 3) {
+                BlockPos localPosFromSignal = new BlockPos(arr[0], arr[1], arr[2]);
+                BlockPos newPosFromSignal;
                 if (mirror == Mirror.NONE) {
-                    newPosFromStation = localPosFromStation.rotate(rotation);
+                    newPosFromSignal = localPosFromSignal.rotate(rotation);
+                } else {
+                    newPosFromSignal = new BlockPos(-localPosFromSignal.getX(), localPosFromSignal.getY(), localPosFromSignal.getZ()).rotate(rotation);
+                }
+                nbt.putIntArray("TargetTrack", new int[]{newPosFromSignal.getX(),  newPosFromSignal.getY(), newPosFromSignal.getZ()});
+                if ((rotation == Rotation.CLOCKWISE_90 || rotation == Rotation.CLOCKWISE_180) && mirror == Mirror.NONE && nbt.contains("TargetDirection")) {
+                    int currentDir = nbt.getInt("TargetDirection");
+                    currentDir = 1 - currentDir;
+                    nbt.putInt("TargetDirection", currentDir);
+                } else if ((rotation == Rotation.COUNTERCLOCKWISE_90) && mirror == Mirror.FRONT_BACK && nbt.contains("TargetDirection")) {
+                    int currentDir = nbt.getInt("TargetDirection");
+                    currentDir = 1 - currentDir;
+                    nbt.putInt("TargetDirection", currentDir);
+                }
+                if (nbt.contains("PrevAxis", Tag.TAG_LIST)) {
+                    ListTag axis = nbt.getList("PrevAxis", Tag.TAG_DOUBLE);
                     if ((rotation == Rotation.CLOCKWISE_90 ||  rotation == Rotation.COUNTERCLOCKWISE_90)) {
                         ListTag newAxis = new ListTag();
                         newAxis.add(valueOf(axis.getDouble(2)));
@@ -72,19 +97,6 @@ public class TrainSignalPlacementHandler extends SimplePlacementHandler {
                         newAxis.add(valueOf(axis.getDouble(0)));
                         nbt.put("PrevAxis", newAxis);
                     }
-                } else {
-                    newPosFromStation = new BlockPos(-localPosFromStation.getX(), localPosFromStation.getY(), localPosFromStation.getZ()).rotate(rotation);
-                }
-                nbt.putIntArray("TargetTrack", new int[]{newPosFromStation.getX(),  newPosFromStation.getY(), newPosFromStation.getZ()});
-                if ((rotation == Rotation.CLOCKWISE_90 || rotation == Rotation.CLOCKWISE_180) && mirror == Mirror.NONE && nbt.contains("TargetDirection")) {
-                    int currentDir = nbt.getInt("TargetDirection");
-                    currentDir = 1 - currentDir;
-                    nbt.putInt("TargetDirection", currentDir);
-
-                } else if ((rotation == Rotation.CLOCKWISE_90 || rotation == Rotation.NONE) && mirror == Mirror.FRONT_BACK && nbt.contains("TargetDirection")) {
-                    int currentDir = nbt.getInt("TargetDirection");
-                    currentDir = 1 - currentDir;
-                    nbt.putInt("TargetDirection", currentDir);
                 }
                 if (nbt.contains("Bezier", Tag.TAG_COMPOUND)) {
                     CompoundTag bezierNbt = nbt.getCompound("Bezier");
@@ -101,24 +113,21 @@ public class TrainSignalPlacementHandler extends SimplePlacementHandler {
                         if (mirror == Mirror.FRONT_BACK) {
                             if (rotation == Rotation.NONE) {
                                 newPosFromKey = new BlockPos(-x, y, z);
+                            } else if (rotation == Rotation.COUNTERCLOCKWISE_90) {
+                                newPosFromKey = new BlockPos(z, y, x);
                                 int currentDir = nbt.getInt("TargetDirection");
                                 currentDir = 1 - currentDir;
                                 nbt.putInt("TargetDirection", currentDir);
-                            } else if (rotation == Rotation.COUNTERCLOCKWISE_90) {
-                                newPosFromKey = new BlockPos(z, y, x);
                             }  else if (rotation == Rotation.CLOCKWISE_180) {
                                 newPosFromKey = new BlockPos(x, y, -z);
                             } else if (rotation == Rotation.CLOCKWISE_90) {
                                 newPosFromKey = new BlockPos(-z, y, -x);
-                                int currentDir = nbt.getInt("TargetDirection");
-                                currentDir = 1 - currentDir;
-                                nbt.putInt("TargetDirection", currentDir);
                             }
                         }
 
                         if (mirror == Mirror.NONE) {
                             newPosFromKey = localPosFromKey.rotate(rotation);
-                            if (rotation == Rotation.CLOCKWISE_180 || rotation == Rotation.COUNTERCLOCKWISE_90) {
+                            if (rotation == Rotation.CLOCKWISE_90) {
                                 int currentDir = nbt.getInt("TargetDirection");
                                 currentDir = 1 - currentDir;
                                 nbt.putInt("TargetDirection", currentDir);
@@ -129,6 +138,10 @@ public class TrainSignalPlacementHandler extends SimplePlacementHandler {
                     }
                 }
             }
+        }
+
+        if (ColonyMain.LOGGER.isDebugEnabled()) {
+            ColonyMain.LOGGER.debug("Full NBT after: {}", nbt);
         }
     }
 }
